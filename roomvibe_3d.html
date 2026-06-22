@@ -44,13 +44,14 @@ const HM = { Sofa:0.85, Bed:0.55, 'Dining Table':0.75, Chair:0.90, Wardrobe:1.90
 let mdown=false, lx=0, ly=0, yaw=0, pitch=0;
 const keys={};
 
-// get data from URL params or localStorage
+// get data from URL param
 function getRoomData() {
   try {
-    const stored = localStorage.getItem('roomvibe_room');
-    if (stored) return JSON.parse(stored);
-  } catch(e) {}
-  return { roomWidth:5, roomHeight:4, items:[] };
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get('data');
+    if (raw) return JSON.parse(decodeURIComponent(raw));
+  } catch(e) { console.log('parse error', e); }
+  return { roomWidth:5, roomHeight:4, items:[], wallColor:'#EDE8E0', floorColor:'#C8B99A', floorType:'parquet' };
 }
 
 function build(data) {
@@ -186,25 +187,9 @@ function build(data) {
   loop();
 }
 
-// Listen for data from parent window
-window.addEventListener('message', e => {
-  if (e.data && e.data.type === 'roomvibe_3d') {
-    build(e.data.data);
-  }
-});
-
-// Also try localStorage
 window.addEventListener('load', () => {
   const data = getRoomData();
-  if (data.items && data.items.length > 0) {
-    build(data);
-  } else {
-    // wait for postMessage
-    setTimeout(() => {
-      const data2 = getRoomData();
-      build(data2);
-    }, 500);
-  }
+  build(data);
 });
 </script>
 </body>
