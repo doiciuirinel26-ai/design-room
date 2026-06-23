@@ -35,6 +35,7 @@ canvas:active { cursor:grabbing; }
 <canvas id="tc"></canvas>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 const CM = { Sofa:0x7C6A9E, Bed:0x5B8DB8, 'Dining Table':0x8B6914, Chair:0xC47D3E,
   Wardrobe:0x4A7C59, Desk:0x6B8E9F, Lamp:0xF5C842, Bookshelf:0x9B6B47, 'TV Stand':0x3D3D4E, 'Coffee Table':0xA0785A };
@@ -113,20 +114,54 @@ function build(data) {
   base(rh,new THREE.Vector3(rw-0.005,0.05,rh/2),-Math.PI/2);
 
   // furniture
+  const loader = new THREE.GLTFLoader();
+  const CM2 = { Sofa:0x7C6A9E, Bed:0x5B8DB8, 'Dining Table':0x8B6914, Chair:0xC47D3E,
+    Wardrobe:0x4A7C59, Desk:0x6B8E9F, Lamp:0xF5C842, Bookshelf:0x9B6B47, 'TV Stand':0x3D3D4E, 'Coffee Table':0xA0785A };
+  const HM2 = { Sofa:0.85, Bed:0.55, 'Dining Table':0.75, Chair:0.90, Wardrobe:1.90,
+    Desk:0.75, Lamp:1.50, Bookshelf:1.80, 'TV Stand':0.50, 'Coffee Table':0.40 };
+
   (data.items||[]).forEach(it => {
-    const fh = HM[it.type]||0.8;
+    const fh = HM2[it.type]||0.8;
     const fw = (it.w/cw)*rw;
     const fd = (it.h/ch)*rh;
-    const g  = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(fw,fh,fd),
-      new THREE.MeshLambertMaterial({color:CM[it.type]||0x888888}));
-    body.position.y=fh/2; body.castShadow=true; body.receiveShadow=true; g.add(body);
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(fw*0.9,fd*0.9),
-      new THREE.MeshLambertMaterial({color:new THREE.Color(CM[it.type]||0x888888).lerp(new THREE.Color(0xffffff),0.3)}));
-    top.rotation.x=-Math.PI/2; top.position.y=fh+0.001; g.add(top);
-    g.position.set((it.x/cw)*rw+fw/2, 0, (it.y/ch)*rh+fd/2);
-    g.rotation.y=-(it.r*Math.PI)/180;
-    sc.add(g);
+    const wx = (it.x/cw)*rw + fw/2;
+    const wz = (it.y/ch)*rh + fd/2;
+
+    if (it.glb) {
+      loader.load(it.glb, (gltf) => {
+        const model = gltf.scene;
+        // auto scale to fit
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = fh / maxDim;
+        model.scale.set(scale, scale, scale);
+        model.position.set(wx, 0, wz);
+        model.rotation.y = -(it.r*Math.PI)/180;
+        model.traverse(child => {
+          if (child.isMesh) { child.castShadow=true; child.receiveShadow=true; }
+        });
+        sc.add(model);
+      }, undefined, () => {
+        // fallback to box if GLB fails
+        const g = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(fw,fh,fd),
+          new THREE.MeshLambertMaterial({color:CM2[it.type]||0x888888}));
+        body.position.y=fh/2; body.castShadow=true; g.add(body);
+        g.position.set(wx,0,wz);
+        g.rotation.y=-(it.r*Math.PI)/180;
+        sc.add(g);
+      });
+    } else {
+      // no GLB — use colored box
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(fw,fh,fd),
+        new THREE.MeshLambertMaterial({color:CM2[it.type]||0x888888}));
+      body.position.y=fh/2; body.castShadow=true; body.receiveShadow=true; g.add(body);
+      g.position.set(wx,0,wz);
+      g.rotation.y=-(it.r*Math.PI)/180;
+      sc.add(g);
+    }
   });
 
   // hide loading, show UI
