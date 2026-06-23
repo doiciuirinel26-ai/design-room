@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room Detail - RoomVibe</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',sans-serif; background:#F8F7FF; color:#1a1a2e; min-height:100vh; }
+
+#header { background:#fff; border-bottom:1px solid #e8e8f0; padding:14px 24px; display:flex; align-items:center; gap:12px; }
+#header a { color:#6C63FF; text-decoration:none; font-size:13px; font-weight:600; }
+#header a:hover { text-decoration:underline; }
+#header h1 { font-size:15px; font-weight:800; color:#6C63FF; flex:1; }
+
+#loading { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; gap:12px; color:#aaa; }
+#loading .spinner { width:40px; height:40px; border:3px solid #f0eeff; border-top:3px solid #6C63FF; border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+#content { max-width:900px; margin:30px auto; padding:0 20px; display:none; }
+
+#room-hero { background:#fff; border-radius:16px; padding:28px; box-shadow:0 2px 16px rgba(108,99,255,0.08); margin-bottom:20px; }
+#room-title { font-size:28px; font-weight:800; color:#1a1a2e; margin-bottom:8px; }
+#room-meta { display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+#style-tag { background:#f0eeff; color:#6C63FF; padding:4px 14px; border-radius:20px; font-size:12px; font-weight:700; }
+#room-date { font-size:12px; color:#aaa; }
+#room-size { font-size:12px; color:#888; background:#f8f7ff; padding:4px 12px; border-radius:20px; }
+#room-desc { font-size:14px; color:#555; line-height:1.6; margin-top:12px; }
+
+#btn-enter-3d { width:100%; padding:16px; background:linear-gradient(135deg,#6C63FF,#a855f7); color:#fff; border:none; border-radius:12px; font-size:16px; font-weight:700; cursor:pointer; margin-top:20px; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px; }
+#btn-enter-3d:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(108,99,255,0.4); }
+
+#furniture-section { background:#fff; border-radius:16px; padding:24px; box-shadow:0 2px 16px rgba(108,99,255,0.08); margin-bottom:20px; }
+#furniture-section h3 { font-size:15px; font-weight:700; color:#1a1a2e; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid #f0eeff; }
+#furniture-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; }
+.furniture-chip { background:#f8f7ff; border:1px solid #e8e8f0; border-radius:10px; padding:10px; text-align:center; }
+.furniture-chip .emoji { font-size:24px; display:block; margin-bottom:4px; }
+.furniture-chip .name { font-size:11px; font-weight:600; color:#555; }
+.furniture-chip .asset { font-size:10px; color:#aaa; margin-top:2px; }
+
+#canvas-preview { background:#fff; border-radius:16px; padding:24px; box-shadow:0 2px 16px rgba(108,99,255,0.08); margin-bottom:20px; }
+#canvas-preview h3 { font-size:15px; font-weight:700; color:#1a1a2e; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid #f0eeff; }
+#preview-canvas { width:100%; max-width:500px; margin:0 auto; display:block; border:2px solid #6C63FF; border-radius:8px; background:#fff; background-image:linear-gradient(rgba(108,99,255,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(108,99,255,0.06) 1px,transparent 1px); background-size:20px 20px; position:relative; }
+
+#error { display:none; text-align:center; padding:60px 20px; color:#aaa; }
+#error h2 { font-size:20px; color:#ff4757; margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>🏠 RoomVibe</h1>
+  <a href="javascript:history.back()">← Back to Feed</a>
+</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Loading room...</p>
+</div>
+
+<div id="error">
+  <h2>Room not found</h2>
+  <p>This room doesn't exist or has been removed.</p>
+</div>
+
+<div id="content">
+  <div id="room-hero">
+    <div id="room-title">Loading...</div>
+    <div id="room-meta">
+      <span id="style-tag"></span>
+      <span id="room-size"></span>
+      <span id="room-date"></span>
+    </div>
+    <div id="room-desc"></div>
+    <button id="btn-enter-3d">🚀 Enter Room in 3D</button>
+  </div>
+
+  <div id="canvas-preview">
+    <h3>📐 Floor Plan</h3>
+    <canvas id="preview-canvas" width="500" height="400"></canvas>
+  </div>
+
+  <div id="furniture-section">
+    <h3>🛋️ Furniture in this room</h3>
+    <div id="furniture-grid"></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://doiciuirinel26.bubbleapps.io/version-test/api/1.1/obj';
+const TOKEN = '4f075eeb1fbdd02a4cb7473bc6bd07a5';
+const VIEWER_3D = 'https://doiciuirinel26-ai.github.io/design-room/roomvibe-3d.html';
+
+const EMOJI_MAP = {
+  'Sofa':'🛋️','Bed':'🛏️','Dining Table':'🍽️','Chair':'🪑',
+  'Wardrobe':'🚪','Desk':'🖥️','Lamp':'💡','Bookshelf':'📚',
+  'TV Stand':'📺','Coffee Table':'☕'
+};
+
+// Get room ID from URL
+function getRoomId() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('id') || params.get('room_id');
+}
+
+// Also listen for room data from Bubble parent
+window.addEventListener('message', e => {
+  if (e.data && e.data.type === 'room_id') {
+    loadRoom(e.data.id);
+  }
+});
+
+async function loadRoom(id) {
+  if (!id) {
+    // try to get from parent Bubble page URL
+    const parentUrl = document.referrer || window.parent.location.href;
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/room/${id}`, {
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+    const data = await res.json();
+    const room = data.response;
+
+    if (!room) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      return;
+    }
+
+    // Parse layout
+    let items = [];
+    try { items = JSON.parse(room.room_layout_json || '[]'); } catch(e) {}
+
+    // Fill UI
+    document.getElementById('room-title').textContent = room.title || 'Untitled Room';
+    document.getElementById('room-desc').textContent = room.description || '';
+    
+    const styleTag = document.getElementById('style-tag');
+    if (room.style_tag) { styleTag.textContent = room.style_tag; }
+    else { styleTag.style.display = 'none'; }
+    
+    document.getElementById('room-size').textContent = 
+      `${room.width_meters || 5}m × ${room.height_meters || 4}m`;
+    
+    const date = new Date(room['Created Date'] || room.created_date);
+    document.getElementById('room-date').textContent = 
+      isNaN(date) ? '' : date.toLocaleDateString();
+
+    // Draw floor plan preview
+    drawFloorPlan(items, room.width_meters || 5, room.height_meters || 4);
+
+    // Furniture list
+    const grid = document.getElementById('furniture-grid');
+    if (items.length === 0) {
+      grid.innerHTML = '<p style="color:#aaa;font-size:13px">No furniture data available.</p>';
+    } else {
+      const counts = {};
+      items.forEach(it => { counts[it.type] = (counts[it.type]||0)+1; });
+      Object.entries(counts).forEach(([type, count]) => {
+        const chip = document.createElement('div');
+        chip.className = 'furniture-chip';
+        chip.innerHTML = `
+          <span class="emoji">${EMOJI_MAP[type]||'🪑'}</span>
+          <div class="name">${type}</div>
+          <div class="asset">×${count}</div>
+        `;
+        grid.appendChild(chip);
+      });
+    }
+
+    // Enter 3D button
+    document.getElementById('btn-enter-3d').addEventListener('click', () => {
+      const roomData = {
+        roomWidth: room.width_meters || 5,
+        roomHeight: room.height_meters || 4,
+        canvasW: (room.width_meters || 5) * 60,
+        canvasH: (room.height_meters || 4) * 60,
+        items: items,
+      };
+      const encoded = encodeURIComponent(JSON.stringify(roomData));
+      window.open(`${VIEWER_3D}?data=${encoded}`, '_blank');
+    });
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+
+  } catch(e) {
+    console.log(e);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+  }
+}
+
+function drawFloorPlan(items, rw, rh) {
+  const canvas = document.getElementById('preview-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  const SCALE = 60;
+  const canvasW = rw * SCALE;
+  const canvasH = rh * SCALE;
+
+  ctx.clearRect(0, 0, W, H);
+
+  const COLOR_MAP = {
+    'Sofa':'#7C6A9E','Bed':'#5B8DB8','Dining Table':'#8B6914',
+    'Chair':'#C47D3E','Wardrobe':'#4A7C59','Desk':'#6B8E9F',
+    'Lamp':'#F5C842','Bookshelf':'#9B6B47','TV Stand':'#3D3D4E','Coffee Table':'#A0785A'
+  };
+
+  // scale to fit canvas
+  const scaleX = W / canvasW;
+  const scaleY = H / canvasH;
+  const scale = Math.min(scaleX, scaleY) * 0.9;
+  const offX = (W - canvasW * scale) / 2;
+  const offY = (H - canvasH * scale) / 2;
+
+  // room border
+  ctx.strokeStyle = '#6C63FF';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(offX, offY, canvasW * scale, canvasH * scale);
+
+  // furniture
+  items.forEach(it => {
+    const x = offX + it.x * scale;
+    const y = offY + it.y * scale;
+    const w = it.w * scale;
+    const h = it.h * scale;
+    
+    ctx.save();
+    ctx.translate(x + w/2, y + h/2);
+    ctx.rotate((it.r * Math.PI) / 180);
+    
+    ctx.fillStyle = COLOR_MAP[it.type] || '#888';
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.roundRect(-w/2, -h/2, w, h, 4);
+    ctx.fill();
+    
+    ctx.globalAlpha = 1;
+    ctx.font = `${Math.max(10, w*0.35)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(it.emoji || '🪑', 0, 0);
+    
+    ctx.restore();
+  });
+}
+
+// Init
+const roomId = getRoomId();
+if (roomId) {
+  loadRoom(roomId);
+} else {
+  // Wait for message from Bubble
+  setTimeout(() => {
+    if (document.getElementById('loading').style.display !== 'none') {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+    }
+  }, 3000);
+}
+</script>
+</body>
+</html>
