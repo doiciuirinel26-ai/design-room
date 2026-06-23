@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Store Dashboard</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',sans-serif; background:#F8F7FF; color:#1a1a2e; }
+
+#toolbar { background:#1a1a2e; padding:12px 20px; display:flex; align-items:center; gap:12px; border-bottom:2px solid #6C63FF; }
+#toolbar h2 { color:#fff; font-size:15px; font-weight:700; flex:1; }
+.tbtn { padding:7px 14px; border:none; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; }
+#btn-save { background:linear-gradient(135deg,#6C63FF,#a855f7); color:#fff; }
+#btn-save:hover { opacity:0.9; }
+#btn-clear { background:#444; color:#fff; }
+
+#main { display:grid; grid-template-columns:1fr 1fr; gap:20px; padding:20px; min-height:calc(100vh - 54px); }
+
+/* FORM */
+#form-card { background:#fff; border-radius:14px; padding:20px; box-shadow:0 2px 12px rgba(108,99,255,0.08); height:fit-content; }
+#form-card h3 { font-size:14px; font-weight:700; color:#1a1a2e; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid #f0eeff; }
+.field { margin-bottom:12px; }
+.field label { display:block; font-size:10px; font-weight:700; color:#888; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+.field input, .field textarea, .field select { width:100%; padding:8px 12px; border:1px solid #e8e8f0; border-radius:8px; font-size:13px; color:#1a1a2e; background:#f8f7ff; transition:border 0.15s; font-family:inherit; }
+.field input:focus, .field textarea:focus, .field select:focus { outline:none; border-color:#6C63FF; background:#fff; }
+.field textarea { height:80px; resize:vertical; }
+.field select { cursor:pointer; }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#btn-submit { width:100%; padding:11px; background:linear-gradient(135deg,#6C63FF,#a855f7); color:#fff; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; margin-top:8px; transition:all 0.2s; }
+#btn-submit:hover { transform:translateY(-1px); box-shadow:0 4px 16px rgba(108,99,255,0.35); }
+#btn-cancel { width:100%; padding:9px; background:#f0f0f0; color:#555; border:none; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; margin-top:6px; }
+#btn-cancel:hover { background:#e0e0e0; }
+#editing-badge { display:none; background:#fff3cd; color:#856404; padding:6px 10px; border-radius:6px; font-size:11px; font-weight:600; margin-bottom:10px; }
+#status { font-size:11px; padding:8px 12px; border-radius:8px; margin-top:8px; display:none; text-align:center; }
+#status.saving { background:#f0eeff; color:#6C63FF; display:block; }
+#status.saved { background:#e8f5e9; color:#22c55e; display:block; }
+#status.error { background:#fee; color:#ff4757; display:block; }
+
+/* PRODUCTS */
+#products-card { background:#fff; border-radius:14px; padding:20px; box-shadow:0 2px 12px rgba(108,99,255,0.08); }
+#products-card h3 { font-size:14px; font-weight:700; color:#1a1a2e; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid #f0eeff; display:flex; align-items:center; justify-content:space-between; }
+#product-count { font-size:11px; background:#f0eeff; color:#6C63FF; padding:3px 10px; border-radius:20px; font-weight:700; }
+#products-list { display:flex; flex-direction:column; gap:10px; }
+.product-card { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid #f0eeff; border-radius:10px; transition:all 0.15s; }
+.product-card:hover { border-color:#6C63FF; background:#f8f7ff; }
+.product-thumb { width:60px; height:60px; object-fit:cover; border-radius:8px; background:#f0eeff; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:24px; }
+.product-thumb img { width:100%; height:100%; object-fit:cover; border-radius:8px; }
+.product-info { flex:1; min-width:0; }
+.product-name { font-size:13px; font-weight:700; color:#1a1a2e; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.product-meta { font-size:11px; color:#888; margin-top:2px; }
+.product-price { font-size:13px; font-weight:700; color:#6C63FF; }
+.product-actions { display:flex; gap:6px; flex-shrink:0; }
+.btn-edit { padding:5px 12px; background:#f0eeff; color:#6C63FF; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; }
+.btn-edit:hover { background:#6C63FF; color:#fff; }
+.btn-delete { padding:5px 12px; background:#fff0f0; color:#ff4757; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; }
+.btn-delete:hover { background:#ff4757; color:#fff; }
+.active-badge { font-size:9px; padding:2px 8px; border-radius:10px; font-weight:700; }
+.active-badge.yes { background:#e8f5e9; color:#22c55e; }
+.active-badge.no { background:#fee; color:#ff4757; }
+#loading { text-align:center; padding:30px; color:#aaa; font-size:13px; }
+#empty { text-align:center; padding:30px; color:#aaa; font-size:13px; display:none; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h2>🏪 Store Dashboard</h2>
+</div>
+
+<div id="main">
+
+  <!-- FORM -->
+  <div id="form-card">
+    <h3>Add / Edit Product</h3>
+    <div id="editing-badge">✏️ Editing: <span id="editing-name"></span></div>
+    
+    <input type="hidden" id="edit-id">
+    
+    <div class="field">
+      <label>Product Name</label>
+      <input type="text" id="f-name" placeholder="e.g. Modern Sofa">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Price (€)</label>
+        <input type="number" id="f-price" placeholder="299">
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <select id="f-category">
+          <option value="">Select category</option>
+          <option value="Sofa">Sofa</option>
+          <option value="sofa">sofa</option>
+          <option value="Bed">Bed</option>
+          <option value="bed">bed</option>
+          <option value="Chair">Chair</option>
+          <option value="chair">chair</option>
+          <option value="Dining Table">Dining Table</option>
+          <option value="Wardrobe">Wardrobe</option>
+          <option value="Desk">Desk</option>
+          <option value="Lamp">Lamp</option>
+          <option value="Bookshelf">Bookshelf</option>
+          <option value="TV Stand">TV Stand</option>
+          <option value="Coffee Table">Coffee Table</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Description</label>
+      <textarea id="f-desc" placeholder="Describe your product..."></textarea>
+    </div>
+    <div class="field">
+      <label>GLB URL (3D Model)</label>
+      <input type="text" id="f-glb" placeholder="https://raw.githubusercontent.com/...">
+    </div>
+    <div class="field">
+      <label>Thumbnail URL (optional)</label>
+      <input type="text" id="f-thumb" placeholder="https://...image.jpg">
+    </div>
+    <div class="field">
+      <label>Active</label>
+      <select id="f-active">
+        <option value="true">Yes - visible to users</option>
+        <option value="false">No - hidden</option>
+      </select>
+    </div>
+    
+    <button id="btn-submit">💾 Save Product</button>
+    <button id="btn-cancel">✕ Cancel / Clear</button>
+    <div id="status"></div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div id="products-card">
+    <h3>My Products <span id="product-count">0</span></h3>
+    <div id="products-list">
+      <div id="loading">Loading products...</div>
+      <div id="empty">No products yet. Add your first product!</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = 'https://doiciuirinel26.bubbleapps.io/version-test/api/1.1/obj';
+const TOKEN = '4f075eeb1fbdd02a4cb7473bc6bd07a5';
+
+let editingId = null;
+
+// ── LOAD PRODUCTS ──
+async function loadProducts() {
+  try {
+    const res = await fetch(`${API}/product`, {
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+    const data = await res.json();
+    const products = data.response?.results || [];
+    
+    document.getElementById('product-count').textContent = products.length;
+    document.getElementById('loading').style.display = 'none';
+    
+    const list = document.getElementById('products-list');
+    list.querySelectorAll('.product-card').forEach(e => e.remove());
+    
+    if (products.length === 0) {
+      document.getElementById('empty').style.display = 'block';
+      return;
+    }
+    
+    document.getElementById('empty').style.display = 'none';
+    
+    products.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      const thumbHtml = p.product_thumbnail 
+        ? `<div class="product-thumb"><img src="${p.product_thumbnail}" onerror="this.parentElement.textContent='🪑'"></div>`
+        : `<div class="product-thumb">🪑</div>`;
+      card.innerHTML = `
+        ${thumbHtml}
+        <div class="product-info">
+          <div class="product-name">${p.product_name || 'Unnamed'}</div>
+          <div class="product-meta">${p.product_category || ''} <span class="active-badge ${p.is_active ? 'yes' : 'no'}">${p.is_active ? 'Active' : 'Hidden'}</span></div>
+          <div class="product-price">€${p.product_price || 0}</div>
+        </div>
+        <div class="product-actions">
+          <button class="btn-edit" onclick="editProduct('${p._id}', ${JSON.stringify(p).replace(/'/g, "\\'")})">✏️ Edit</button>
+          <button class="btn-delete" onclick="deleteProduct('${p._id}')">🗑</button>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+  } catch(e) {
+    document.getElementById('loading').textContent = 'Error loading products';
+  }
+}
+
+// ── EDIT ──
+function editProduct(id, p) {
+  editingId = id;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('f-name').value = p.product_name || '';
+  document.getElementById('f-price').value = p.product_price || '';
+  document.getElementById('f-category').value = p.product_category || '';
+  document.getElementById('f-desc').value = p.product_description || '';
+  document.getElementById('f-glb').value = p.product_glb_url || '';
+  document.getElementById('f-thumb').value = p.product_thumbnail || '';
+  document.getElementById('f-active').value = p.is_active ? 'true' : 'false';
+  document.getElementById('editing-badge').style.display = 'block';
+  document.getElementById('editing-name').textContent = p.product_name;
+  document.getElementById('btn-submit').textContent = '💾 Update Product';
+  window.scrollTo(0,0);
+}
+
+// ── CANCEL ──
+document.getElementById('btn-cancel').addEventListener('click', () => {
+  editingId = null;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-price').value = '';
+  document.getElementById('f-category').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-glb').value = '';
+  document.getElementById('f-thumb').value = '';
+  document.getElementById('f-active').value = 'true';
+  document.getElementById('editing-badge').style.display = 'none';
+  document.getElementById('btn-submit').textContent = '💾 Save Product';
+  document.getElementById('status').style.display = 'none';
+});
+
+// ── SAVE ──
+document.getElementById('btn-submit').addEventListener('click', async () => {
+  const name = document.getElementById('f-name').value.trim();
+  const price = document.getElementById('f-price').value;
+  const category = document.getElementById('f-category').value;
+  
+  if (!name || !price || !category) {
+    showStatus('error', '⚠ Name, price and category are required!');
+    return;
+  }
+  
+  showStatus('saving', '💾 Saving...');
+  
+  const body = {
+    product_name: name,
+    product_price: parseFloat(price),
+    product_category: category,
+    product_description: document.getElementById('f-desc').value,
+    product_glb_url: document.getElementById('f-glb').value,
+    product_thumbnail: document.getElementById('f-thumb').value,
+    is_active: document.getElementById('f-active').value === 'true',
+  };
+  
+  try {
+    let res;
+    if (editingId) {
+      res = await fetch(`${API}/product/${editingId}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    } else {
+      res = await fetch(`${API}/product`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    }
+    
+    if (res.ok) {
+      showStatus('saved', '✅ Product saved!');
+      document.getElementById('btn-cancel').click();
+      setTimeout(loadProducts, 500);
+    } else {
+      showStatus('error', '❌ Error saving product');
+    }
+  } catch(e) {
+    showStatus('error', '❌ Network error');
+  }
+});
+
+// ── DELETE ──
+async function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  try {
+    await fetch(`${API}/product/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${TOKEN}` }
+    });
+    loadProducts();
+  } catch(e) {
+    alert('Error deleting product');
+  }
+}
+
+function showStatus(type, msg) {
+  const el = document.getElementById('status');
+  el.className = type;
+  el.textContent = msg;
+  if (type === 'saved') setTimeout(() => el.style.display = 'none', 3000);
+}
+
+loadProducts();
+</script>
+</body>
+</html>
