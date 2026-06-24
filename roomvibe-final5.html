@@ -166,11 +166,18 @@ html, body { width:100%; height:100%; overflow:hidden; font-family:'Segoe UI',sa
 // ═══════════════════════════════════════
 const ASSETS = {
   'Sofa': [
-    { id:'sofa-1',    name:'Sofa',    style:'Modern',       emoji:'🛋️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/SOFA.glb',      w:80, h:40 },
-    { id:'sofa-2',    name:'Sofa 1',  style:'Scandinavian', emoji:'🛋️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/SOFA%201.glb',  w:80, h:40 },
+    { id:'sofa-1',     name:'Sofa',          style:'Modern',       emoji:'🛋️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/SOFA.glb',                    w:80, h:40 },
+    { id:'sofa-2',     name:'Sofa 1',        style:'Scandinavian', emoji:'🛋️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/SOFA%201.glb',                w:80, h:40 },
+    { id:'sofa-black', name:'Sofa Black',    style:'Modern',       emoji:'🛋️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/sofablack.glb',        w:80, h:40 },
+    { id:'sofa-green', name:'Sofa Green',    style:'Modern',       emoji:'🛋️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/sofagreen.glb',        w:80, h:40 },
+    { id:'sofa-grey',  name:'Sofa Grey',     style:'Modern',       emoji:'🛋️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/sofagrey.glb',         w:80, h:40 },
+    { id:'sofa-pink',  name:'Sofa Pink',     style:'Bohemian',     emoji:'🛋️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/sofapink.glb',         w:80, h:40 },
+    { id:'sofa-white', name:'Sofa White',    style:'Minimalist',   emoji:'🛋️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/sofawhite.glb',        w:80, h:40 },
   ],
   'Bed': [
-    { id:'bench-1',   name:'Bench',   style:'Modern',       emoji:'🛏️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/BENCH.glb',     w:90, h:50 },
+    { id:'bench-1',    name:'Bench',         style:'Modern',       emoji:'🛏️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/BENCH.glb',                   w:90,  h:50 },
+    { id:'bed-double', name:'Bed Double',    style:'Modern',       emoji:'🛏️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/beddublle.glb',        w:120, h:80 },
+    { id:'bed-white',  name:'Bed White',     style:'Minimalist',   emoji:'🛏️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/bedwhite.glb',         w:120, h:80 },
   ],
   'Dining Table': [
     { id:'table-1',   name:'Table',         style:'Modern',      emoji:'🍽️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/TABLE.glb',           w:80, h:80 },
@@ -181,32 +188,45 @@ const ASSETS = {
     { id:'billiard',  name:'Billiard Table',style:'Industrial',  emoji:'🎱', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/BILIARD%20TABLE.glb', w:120, h:70},
   ],
   'Chair': [
-    { id:'chair-1',   name:'Chair',   style:'Modern',       emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR.glb',      w:44, h:44 },
-    { id:'chair-2',   name:'Chair 1', style:'Modern',       emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%201.glb',  w:44, h:44 },
-    { id:'chair-3',   name:'Chair 2', style:'Scandinavian', emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%202.glb',  w:44, h:44 },
-    { id:'chair-4',   name:'Chair 3', style:'Industrial',   emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%203.glb',  w:44, h:44 },
-    { id:'chair-5',   name:'Chair 4', style:'Bohemian',     emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%204.glb',  w:44, h:44 },
-    { id:'chair-6',   name:'Chair 5', style:'Luxury',       emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%205.glb',  w:44, h:44 },
+    { id:'chair-1',       name:'Chair',          style:'Modern',       emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR.glb',               w:44, h:44 },
+    { id:'chair-2',       name:'Chair 1',        style:'Modern',       emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%201.glb',           w:44, h:44 },
+    { id:'chair-3',       name:'Chair 2',        style:'Scandinavian', emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%202.glb',           w:44, h:44 },
+    { id:'chair-4',       name:'Chair 3',        style:'Industrial',   emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%203.glb',           w:44, h:44 },
+    { id:'chair-5',       name:'Chair 4',        style:'Bohemian',     emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%204.glb',           w:44, h:44 },
+    { id:'chair-6',       name:'Chair 5',        style:'Luxury',       emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/CHAIR%205.glb',           w:44, h:44 },
+    { id:'chair-yellow',  name:'Chair Yellow',   style:'Modern',       emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/chairyellow.glb',  w:44, h:44 },
+    { id:'armchair-gray', name:'Armchair Gray',  style:'Modern',       emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/armchairgray.glb', w:55, h:55 },
+    { id:'armchair-pink', name:'Armchair Pink',  style:'Bohemian',     emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/armchairpink.glb', w:55, h:55 },
+    { id:'armchair-yell', name:'Armchair Yellow',style:'Scandinavian', emoji:'🪑', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/armchairyellow.glb',w:55, h:55 },
   ],
   'Wardrobe': [
-    { id:'comode-1',  name:'Comode',   style:'Modern',      emoji:'🚪', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/COMODE.glb',     w:60, h:40 },
-    { id:'comode-2',  name:'Comode 1', style:'Luxury',      emoji:'🚪', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/COMODE%201.glb', w:60, h:40 },
+    { id:'comode-1',  name:'Comode',         style:'Modern',       emoji:'🚪', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/COMODE.glb',              w:60, h:40 },
+    { id:'comode-2',  name:'Comode 1',       style:'Luxury',       emoji:'🚪', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/COMODE%201.glb',          w:60, h:40 },
+    { id:'cabinet-1', name:'Cabinet',        style:'Modern',       emoji:'🚪', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/cabinet.glb',      w:60, h:40 },
+    { id:'cabinet-w', name:'Cabinet Wooden', style:'Scandinavian', emoji:'🚪', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/cabinetwoden.glb', w:60, h:40 },
   ],
   'Desk': [
     { id:'shelf-1',   name:'Shelf',   style:'Modern',       emoji:'🖥️', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/SHELF.glb',      w:70, h:30 },
   ],
   'Lamp': [
-    { id:'lamp-1',    name:'Lamp',    style:'Modern',       emoji:'💡', glb: null,                    w:36, h:36 },
+    { id:'lamp-1',    name:'Lamp',    style:'Modern',       emoji:'💡', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/lamp.glb', w:36, h:36 },
   ],
   'Bookshelf': [
     { id:'shelf-b',   name:'Shelf',   style:'Modern',       emoji:'📚', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/SHELF.glb',      w:50, h:80 },
   ],
   'TV Stand': [
-    { id:'tv-1',      name:'TV Stand',   style:'Modern',    emoji:'📺', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/TV%20STANDING.glb',   w:80, h:36 },
-    { id:'tv-2',      name:'TV Stand 1', style:'Modern',    emoji:'📺', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/TV%20STANDING%201.glb',w:80, h:36 },
+    { id:'tv-1',       name:'TV Stand',    style:'Modern',   emoji:'📺', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/TV%20STANDING.glb',           w:80, h:36 },
+    { id:'tv-2',       name:'TV Stand 1',  style:'Modern',   emoji:'📺', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/TV%20STANDING%201.glb',       w:80, h:36 },
+    { id:'tv-stand-n', name:'TV Standing', style:'Modern',   emoji:'📺', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/tvstanding.glb',       w:80, h:36 },
   ],
   'Coffee Table': [
     { id:'coffee-1',  name:'Table',   style:'Modern',       emoji:'☕', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/TABLE.glb',      w:54, h:54 },
+  ],
+  'Furniture Set': [
+    { id:'furn-set',  name:'Furniture Set', style:'Modern', emoji:'🏠', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/furniture_set.glb', w:120, h:100 },
+  ],
+  'Bathroom': [
+    { id:'chiuveta-1',name:'Sink',         style:'Modern',  emoji:'🚿', glb: 'https://raw.githubusercontent.com/doiciuirinel26-ai/design-room/master/assets/chiuveta.glb',      w:50, h:40 },
   ],
 };
 
