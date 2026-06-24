@@ -147,14 +147,21 @@ function build(data) {
     const wx = (it.x/cw)*rw + fw/2;
     const wz = (it.y/ch)*rh + fd/2;
 
-    if (it.glb) {
-      loader.load(it.glb, (gltf) => {
+    // Accept GLB URL from any common field name Bubble might use
+    const glbUrl = it.glb || it.glb_url || it.model || it.model_url
+                || it.asset || it.asset_url || it.url || it.file || it.file_url
+                || it['3d_model'] || it.model3d || it.glbUrl || it.modelUrl;
+
+    if (glbUrl) {
+      loader.load(glbUrl, (gltf) => {
         const model = gltf.scene;
         const box = new THREE.Box3().setFromObject(model);
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = fh / maxDim;
-        model.scale.set(scale, scale, scale);
+        if (maxDim > 0) {
+          const scale = fh / maxDim;
+          model.scale.set(scale, scale, scale);
+        }
         model.position.set(wx, 0, wz);
         model.rotation.y = -(it.r*Math.PI)/180;
         model.traverse(child => {
