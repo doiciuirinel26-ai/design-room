@@ -577,12 +577,21 @@ document.getElementById('btn-3d').addEventListener('click', () => {
   };
   try { localStorage.setItem('roomvibe_room', JSON.stringify(roomData)); } catch(e) {}
   const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(roomData))));
-  const viewer3dUrl = 'https://doiciuirinel26-ai.github.io/design-room/roomvibe-3d-final.html?data=' + encoded;
+  const viewer3dUrl = 'https://doiciuirinel26-ai.github.io/design-room/roomvibe-3d.html?data=' + encoded;
   const win = window.open(viewer3dUrl, '_blank');
   if (win) {
-    setTimeout(() => {
+    // Send on ready signal from viewer, or after 2s fallback
+    const sendData = () => {
       try { win.postMessage({ type: 'roomvibe_3d', data: roomData }, '*'); } catch(e) {}
-    }, 2000);
+    };
+    const fallback = setTimeout(sendData, 2000);
+    window.addEventListener('message', function onReady(e) {
+      if (e.data && e.data.type === 'roomvibe_3d_ready') {
+        clearTimeout(fallback);
+        sendData();
+        window.removeEventListener('message', onReady);
+      }
+    });
   }
 });
 
