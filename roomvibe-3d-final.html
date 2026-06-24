@@ -45,13 +45,24 @@ const HM = { Sofa:0.85, Bed:0.55, 'Dining Table':0.75, Chair:0.90, Wardrobe:1.90
 let mdown=false, lx=0, ly=0, yaw=0, pitch=0;
 const keys={};
 
-// get data from URL params or localStorage
+let _built = false;
+
 function getRoomData() {
+  try {
+    const param = new URLSearchParams(location.search).get('data');
+    if (param) return JSON.parse(decodeURIComponent(escape(atob(param))));
+  } catch(e) {}
   try {
     const stored = localStorage.getItem('roomvibe_room');
     if (stored) return JSON.parse(stored);
   } catch(e) {}
   return { roomWidth:5, roomHeight:4, items:[] };
+}
+
+function buildOnce(data) {
+  if (_built) return;
+  _built = true;
+  build(data);
 }
 
 function build(data) {
@@ -212,24 +223,25 @@ function build(data) {
   loop();
 }
 
-// Listen for data from parent window
+// Listen for data from parent window (postMessage fallback)
 window.addEventListener('message', e => {
   if (e.data && e.data.type === 'roomvibe_3d') {
-    build(e.data.data);
+    buildOnce(e.data.data);
   }
 });
 
-// Also try localStorage
 window.addEventListener('load', () => {
   const data = getRoomData();
   if (data.items && data.items.length > 0) {
-    build(data);
+    buildOnce(data);
   } else {
-    // wait for postMessage
+    // Wait for postMessage — show loading screen, do not build empty room
     setTimeout(() => {
-      const data2 = getRoomData();
-      build(data2);
-    }, 500);
+      if (!_built) {
+        const data2 = getRoomData();
+        buildOnce(data2);
+      }
+    }, 3000);
   }
 });
 </script>

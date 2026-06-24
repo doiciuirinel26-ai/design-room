@@ -575,17 +575,14 @@ document.getElementById('btn-3d').addEventListener('click', () => {
     canvasH: ch,
     items: items,
   };
-  // Save to localStorage so 3D page can read it
   try { localStorage.setItem('roomvibe_room', JSON.stringify(roomData)); } catch(e) {}
-  // Open 3D viewer in new tab
-  // IMPORTANT: Replace this URL with your GitHub Pages / Vercel URL for roomvibe-3d.html
-  const viewer3dUrl = 'https://doiciuirinel26-ai.github.io/design-room/roomvibe-3d.html';
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(roomData))));
+  const viewer3dUrl = 'https://doiciuirinel26-ai.github.io/design-room/roomvibe-3d-final.html?data=' + encoded;
   const win = window.open(viewer3dUrl, '_blank');
-  // Also try postMessage after tab opens
   if (win) {
     setTimeout(() => {
       try { win.postMessage({ type: 'roomvibe_3d', data: roomData }, '*'); } catch(e) {}
-    }, 1000);
+    }, 2000);
   }
 });
 
