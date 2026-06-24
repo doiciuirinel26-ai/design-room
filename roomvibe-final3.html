@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; font-family:'Segoe UI',sans-serif; background:#F0EEFF; }
+
+#app { display:grid; grid-template-rows:50px 1fr; grid-template-columns:90px 1fr 160px; height:100vh; }
+
+/* TOOLBAR */
+#toolbar { grid-column:1/-1; background:#1a1a2e; display:flex; align-items:center; padding:0 12px; gap:8px; border-bottom:2px solid #6C63FF; }
+#toolbar h2 { color:#fff; font-size:13px; font-weight:700; flex:1; }
+.tbtn { padding:6px 12px; border:none; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; }
+#btn-clear { background:#ff4757; color:#fff; }
+#btn-draft { background:#444; color:#fff; }
+#btn-draft:hover { background:#666; }
+#btn-publish { background:linear-gradient(135deg,#6C63FF,#a855f7); color:#fff; }
+#btn-publish:hover { opacity:0.9; }
+#btn-3d { background:#fff; color:#6C63FF; border:2px solid #6C63FF; }
+#btn-3d:hover { background:#6C63FF; color:#fff; }
+
+/* PALETTE */
+#palette { grid-row:2; background:#fff; border-right:1px solid #ddd; overflow-y:auto; padding:8px 4px; }
+.pi { display:flex; flex-direction:column; align-items:center; padding:8px 4px; border-radius:8px; cursor:pointer; margin-bottom:2px; border:2px solid transparent; user-select:none; transition:all 0.15s; }
+.pi:hover { background:#f0eeff; border-color:#6C63FF; transform:scale(1.05); }
+.pi span:first-child { font-size:22px; }
+.pi span:last-child { font-size:9px; font-weight:600; color:#555; text-align:center; margin-top:2px; }
+
+/* CANVAS */
+#canvas-wrap { grid-row:2; display:flex; align-items:center; justify-content:center; background:#eeeef8; overflow:hidden; }
+#canvas { background:#fff; border:3px solid #6C63FF; border-radius:4px; position:relative; box-shadow:0 4px 24px rgba(108,99,255,0.2); background-image:linear-gradient(rgba(108,99,255,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(108,99,255,0.07) 1px,transparent 1px); background-size:40px 40px; }
+.item { position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:move; user-select:none; border-radius:6px; border:2px solid transparent; transition:border-color 0.1s; }
+.item:hover { border-color:#6C63FF; }
+.item.sel { border-color:#6C63FF; box-shadow:0 0 0 3px rgba(108,99,255,0.3); }
+.item img { width:100%; height:100%; object-fit:contain; pointer-events:none; border-radius:4px; }
+.item .ico { font-size:24px; pointer-events:none; }
+.item .lbl { font-size:8px; font-weight:700; color:#6C63FF; pointer-events:none; white-space:nowrap; }
+
+/* PANEL */
+#panel { grid-row:2; background:#fff; border-left:1px solid #ddd; padding:12px 8px; display:flex; flex-direction:column; gap:10px; overflow:hidden; }
+#panel h3 { font-size:9px; font-weight:700; color:#aaa; letter-spacing:1px; text-transform:uppercase; }
+.row { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+.row label { font-size:9px; color:#888; }
+.row input { width:40px; padding:3px 5px; border:1px solid #ddd; border-radius:5px; font-size:11px; }
+#sel-info { background:#f8f7ff; border-radius:6px; padding:8px; font-size:10px; color:#555; min-height:50px; border:1px solid #eee; }
+.pbtn { width:100%; padding:8px; border:none; border-radius:7px; font-size:11px; font-weight:700; cursor:pointer; transition:all 0.15s; }
+#btn-rot { background:#f0eeff; color:#6C63FF; }
+#btn-rot:hover { background:#6C63FF; color:#fff; }
+#btn-del { background:#fff0f0; color:#ff4757; }
+#btn-del:hover { background:#ff4757; color:#fff; }
+.hint { font-size:9px; color:#bbb; line-height:1.5; }
+#status { font-size:10px; padding:6px 8px; border-radius:6px; text-align:center; display:none; }
+#status.saving { background:#fff8e1; color:#f59e0b; display:block; }
+#status.saved  { background:#e8f5e9; color:#22c55e; display:block; }
+#status.error  { background:#fee; color:#ff4757; display:block; }
+
+/* ASSET MODAL */
+#modal { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:500; display:none; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+#modal.open { display:flex; }
+#modal-box { background:#fff; border-radius:16px; width:520px; max-height:80vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+#modal-header { background:#1a1a2e; padding:16px 20px; display:flex; align-items:center; gap:10px; border-bottom:2px solid #6C63FF; }
+#modal-title { color:#fff; font-size:14px; font-weight:700; flex:1; }
+#modal-close { background:rgba(255,255,255,0.15); color:#fff; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:12px; font-weight:700; }
+#modal-close:hover { background:rgba(255,255,255,0.25); }
+#modal-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding:16px; overflow-y:auto; }
+.asset-card { border:2px solid #eee; border-radius:10px; padding:10px; cursor:pointer; transition:all 0.15s; text-align:center; }
+.asset-card:hover { border-color:#6C63FF; background:#f8f7ff; transform:translateY(-2px); box-shadow:0 4px 12px rgba(108,99,255,0.15); }
+.asset-card.selected { border-color:#6C63FF; background:#f0eeff; }
+.asset-preview { width:100%; height:90px; object-fit:contain; border-radius:6px; margin-bottom:6px; background:#f8f7ff; }
+.asset-emoji { font-size:48px; height:90px; display:flex; align-items:center; justify-content:center; background:#f8f7ff; border-radius:6px; margin-bottom:6px; }
+.asset-name { font-size:11px; font-weight:600; color:#333; }
+.asset-style { font-size:9px; color:#888; margin-top:2px; }
+#modal-footer { padding:12px 16px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:8px; }
+#btn-modal-cancel { padding:8px 16px; background:#f0f0f0; color:#333; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:12px; }
+#btn-modal-place { padding:8px 20px; background:linear-gradient(135deg,#6C63FF,#a855f7); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700; font-size:12px; }
+#btn-modal-place:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* 3D VIEWER */
+#v3d { position:fixed; inset:0; background:#000; z-index:999; display:none; }
+#v3d canvas { display:block; cursor:grab; }
+#v3d canvas:active { cursor:grabbing; }
+#vui { position:absolute; top:14px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.6); color:#fff; padding:6px 18px; border-radius:20px; font-size:11px; pointer-events:none; backdrop-filter:blur(8px); white-space:nowrap; }
+#btn-exit { position:absolute; top:14px; right:14px; background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3); padding:7px 14px; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; }
+#btn-exit:hover { background:rgba(255,255,255,0.3); }
+#xhair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; }
+#xhair::before { content:''; position:absolute; width:18px; height:2px; background:rgba(255,255,255,0.8); top:-1px; left:-9px; }
+#xhair::after  { content:''; position:absolute; width:2px; height:18px; background:rgba(255,255,255,0.8); top:-9px; left:-1px; }
+#wasd-hint { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.5); color:#ccc; padding:6px 16px; border-radius:10px; font-size:10px; pointer-events:none; }
+.color-swatch { width:24px; height:24px; border-radius:4px; cursor:pointer; border:2px solid transparent; transition:all 0.15s; flex-shrink:0; }
+.color-swatch:hover { transform:scale(1.2); border-color:#6C63FF; }
+.color-swatch.active { border-color:#6C63FF; box-shadow:0 0 0 2px rgba(108,99,255,0.4); }
+.floor-btn { padding:5px 8px; border-radius:6px; font-size:10px; font-weight:600; cursor:pointer; background:#f8f7ff; color:#333; border:2px solid transparent; transition:all 0.15s; }
+.floor-btn:hover { border-color:#6C63FF; background:#f0eeff; }
+.floor-btn.active { border-color:#6C63FF; background:#f0eeff; color:#6C63FF; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="toolbar">
+    <h2>🏠 ROOMVIBE</h2>
+    <button class="tbtn" id="btn-clear">🗑 Clear</button>
+    <button class="tbtn" id="btn-draft">💾 Save Draft</button>
+    <button class="tbtn" id="btn-publish">🚀 Publish</button>
+    <button class="tbtn" id="btn-3d">👁 Enter 3D</button>
+  </div>
+
+  <div id="palette">
+    <div class="pi" data-type="Sofa">         <span>🛋️</span><span>Sofa</span></div>
+    <div class="pi" data-type="Bed">          <span>🛏️</span><span>Bed</span></div>
+    <div class="pi" data-type="Dining Table"> <span>🍽️</span><span>Dining</span></div>
+    <div class="pi" data-type="Chair">        <span>🪑</span><span>Chair</span></div>
+    <div class="pi" data-type="Wardrobe">     <span>🚪</span><span>Wardrobe</span></div>
+    <div class="pi" data-type="Desk">         <span>🖥️</span><span>Desk</span></div>
+    <div class="pi" data-type="Lamp">         <span>💡</span><span>Lamp</span></div>
+    <div class="pi" data-type="Bookshelf">    <span>📚</span><span>Books</span></div>
+    <div class="pi" data-type="TV Stand">     <span>📺</span><span>TV Stand</span></div>
+    <div class="pi" data-type="Coffee Table"> <span>☕</span><span>Coffee T.</span></div>
+  </div>
+
+  <div id="canvas-wrap">
+    <div id="canvas"></div>
+  </div>
+
+  <div id="panel">
+    <h3>Room Size</h3>
+    <div class="row">
+      <label>W(m)</label><input type="number" id="rw" value="5" min="2" max="20">
+      <label>H(m)</label><input type="number" id="rh" value="4" min="2" max="20">
+    </div>
+    <h3>Selected</h3>
+    <div id="sel-info"><span style="color:#bbb;font-style:italic;font-size:9px">Click an item to select</span></div>
+    <button class="pbtn" id="btn-rot">↻ Rotate 90°</button>
+    <button class="pbtn" id="btn-del">✕ Remove</button>
+    <div class="hint">Click furniture from the left panel to choose an asset, then place it on canvas.</div>
+    
+    <h3>Wall & Floor</h3>
+    
+    <div style="font-size:9px;color:#888;margin-bottom:2px;">Wall Color</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+      <div class="color-swatch" data-target="wall" data-color="#EDE8E0" style="background:#EDE8E0;" title="Beige"></div>
+      <div class="color-swatch" data-target="wall" data-color="#FFFFFF" style="background:#FFFFFF;" title="White"></div>
+      <div class="color-swatch" data-target="wall" data-color="#D0D8E0" style="background:#D0D8E0;" title="Blue Grey"></div>
+      <div class="color-swatch" data-target="wall" data-color="#D4E8D0" style="background:#D4E8D0;" title="Sage"></div>
+      <div class="color-swatch" data-target="wall" data-color="#E8D8D0" style="background:#E8D8D0;" title="Dusty Rose"></div>
+      <div class="color-swatch" data-target="wall" data-color="#2C2C3E" style="background:#2C2C3E;" title="Dark"></div>
+      <div class="color-swatch" data-target="wall" data-color="#F5E6C8" style="background:#F5E6C8;" title="Warm"></div>
+      <input type="color" id="wall-custom" value="#EDE8E0" title="Custom color" style="width:24px;height:24px;border:none;border-radius:4px;cursor:pointer;padding:0;">
+    </div>
+
+    <div style="font-size:9px;color:#888;margin-bottom:2px;">Floor</div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
+      <div class="floor-btn" data-floor="parquet" data-color="#C8B99A">🪵 Parquet</div>
+      <div class="floor-btn" data-floor="tile" data-color="#D8D8D8">⬜ Tiles</div>
+      <div class="floor-btn" data-floor="marble" data-color="#E8E8E8">🔲 Marble</div>
+      <div class="floor-btn" data-floor="dark" data-color="#4A3728">🟫 Dark Wood</div>
+      <div class="floor-btn" data-floor="concrete" data-color="#A0A0A0">🔳 Concrete</div>
+    </div>
+
+    <div id="status"></div>
+  </div>
+</div>
+
+<!-- ASSET MODAL -->
+<div id="modal">
+  <div id="modal-box">
+    <div id="modal-header">
+      <span id="modal-title">🛋️ Choose Sofa Asset</span>
+      <button id="modal-close">✕</button>
+    </div>
+    <div id="modal-grid"></div>
+    <div id="modal-footer">
+      <button id="btn-modal-cancel">Cancel</button>
+      <button id="btn-modal-place" disabled>Place on Canvas</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3D VIEWER -->
+<div id="v3d">
+  <div id="vui">🖱 Click + drag to look · WASD to move</div>
+  <div id="xhair"></div>
+  <button id="btn-exit">✕ Exit 3D</button>
+  <canvas id="tc"></canvas>
+  <div id="wasd-hint">W A S D — move &nbsp;|&nbsp; Mouse drag — look</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+
+// ═══════════════════════════════════════
+//  ASSET LIBRARY
+//  Replace URLs with your GitHub raw URLs after uploading GLBs
+//  Format: https://raw.githubusercontent.com/YOUR_USER/roomvibe-assets/main/sofa-modern.glb
+// ═══════════════════════════════════════
+const ASSETS = {
+  'Sofa': [
+    { id:'sofa-modern',   name:'Modern Sofa',      style:'Modern',       emoji:'🛋️', glb: null, w:80, h:40 },
+    { id:'sofa-scandi',   name:'Scandi Sofa',       style:'Scandinavian', emoji:'🛋️', glb: null, w:80, h:40 },
+    { id:'sofa-luxury',   name:'Luxury Sofa',       style:'Luxury',       emoji:'🛋️', glb: null, w:90, h:45 },
+  ],
+  'Bed': [
+    { id:'bed-modern',    name:'Modern Bed',        style:'Modern',       emoji:'🛏️', glb: null, w:70, h:90 },
+    { id:'bed-scandi',    name:'Scandi Bed',        style:'Scandinavian', emoji:'🛏️', glb: null, w:70, h:90 },
+    { id:'bed-luxury',    name:'King Bed',          style:'Luxury',       emoji:'🛏️', glb: null, w:90, h:100},
+  ],
+  'Dining Table': [
+    { id:'dining-round',  name:'Round Table',       style:'Modern',       emoji:'🍽️', glb: null, w:70, h:70 },
+    { id:'dining-rect',   name:'Rect Table',        style:'Industrial',   emoji:'🍽️', glb: null, w:90, h:60 },
+  ],
+  'Chair': [
+    { id:'chair-modern',  name:'Modern Chair',      style:'Modern',       emoji:'🪑', glb: null, w:44, h:44 },
+    { id:'chair-accent',  name:'Accent Chair',      style:'Bohemian',     emoji:'🪑', glb: null, w:50, h:50 },
+    { id:'chair-office',  name:'Office Chair',      style:'Minimalist',   emoji:'🪑', glb: null, w:44, h:44 },
+  ],
+  'Wardrobe': [
+    { id:'ward-modern',   name:'Modern Wardrobe',   style:'Modern',       emoji:'🚪', glb: null, w:50, h:90 },
+    { id:'ward-vintage',  name:'Vintage Wardrobe',  style:'Bohemian',     emoji:'🚪', glb: null, w:55, h:95 },
+  ],
+  'Desk': [
+    { id:'desk-modern',   name:'Modern Desk',       style:'Modern',       emoji:'🖥️', glb: null, w:70, h:50 },
+    { id:'desk-corner',   name:'Corner Desk',       style:'Minimalist',   emoji:'🖥️', glb: null, w:90, h:70 },
+  ],
+  'Lamp': [
+    { id:'lamp-floor',    name:'Floor Lamp',        style:'Modern',       emoji:'💡', glb: null, w:36, h:36 },
+    { id:'lamp-table',    name:'Table Lamp',        style:'Bohemian',     emoji:'💡', glb: null, w:28, h:28 },
+  ],
+  'Bookshelf': [
+    { id:'shelf-modern',  name:'Modern Shelf',      style:'Modern',       emoji:'📚', glb: null, w:50, h:80 },
+    { id:'shelf-indust',  name:'Industrial Shelf',  style:'Industrial',   emoji:'📚', glb: null, w:55, h:85 },
+  ],
+  'TV Stand': [
+    { id:'tv-modern',     name:'Modern TV Stand',   style:'Modern',       emoji:'📺', glb: null, w:80, h:36 },
+    { id:'tv-floating',   name:'Floating Stand',    style:'Minimalist',   emoji:'📺', glb: null, w:80, h:30 },
+  ],
+  'Coffee Table': [
+    { id:'coffee-round',  name:'Round Table',       style:'Modern',       emoji:'☕', glb: null, w:54, h:54 },
+    { id:'coffee-rect',   name:'Rect Table',        style:'Scandinavian', emoji:'☕', glb: null, w:70, h:40 },
+  ],
+};
+
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+const SCALE = 60;
+let items = [], selId = null, dragging = false, offX = 0, offY = 0;
+let wallColor = '#EDE8E0';
+let floorType = 'parquet';
+let floorColor = '#C8B99A';
+let currentType = null, selectedAsset = null;
+
+const canvas   = document.getElementById('canvas');
+const selInfo  = document.getElementById('sel-info');
+const modal    = document.getElementById('modal');
+const modalGrid= document.getElementById('modal-grid');
+const status   = document.getElementById('status');
+
+function resize() {
+  const rw = +document.getElementById('rw').value || 5;
+  const rh = +document.getElementById('rh').value || 4;
+  canvas.style.width  = (rw * SCALE) + 'px';
+  canvas.style.height = (rh * SCALE) + 'px';
+}
+document.getElementById('rw').addEventListener('input', resize);
+document.getElementById('rh').addEventListener('input', resize);
+resize();
+
+// ═══════════════════════════════════════
+//  RENDER 2D
+// ═══════════════════════════════════════
+function render() {
+  canvas.querySelectorAll('.item').forEach(e => e.remove());
+  items.forEach(it => {
+    const el = document.createElement('div');
+    el.className = 'item' + (it.id === selId ? ' sel' : '');
+    el.style.cssText = `left:${it.x}px;top:${it.y}px;width:${it.w}px;height:${it.h}px;transform:rotate(${it.r}deg)`;
+    // show image if asset has glb/img, else emoji
+    el.innerHTML = `<span class="ico">${it.emoji}</span><span class="lbl">${it.assetName}</span>`;
+    el.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      selId = it.id; dragging = true;
+      const rc = canvas.getBoundingClientRect();
+      offX = e.clientX - rc.left - it.x;
+      offY = e.clientY - rc.top  - it.y;
+      info(); render();
+    });
+    canvas.appendChild(el);
+  });
+}
+
+function info() {
+  const it = items.find(i => i.id === selId);
+  if (!it) { selInfo.innerHTML = '<span style="color:#bbb;font-style:italic;font-size:9px">Click an item to select</span>'; return; }
+  selInfo.innerHTML = `<b style="color:#6C63FF">${it.emoji} ${it.assetName}</b><br><span style="color:#888">${it.type} · ${it.style}</span><br>Rot: ${it.r}°`;
+}
+
+canvas.addEventListener('mousedown', e => { if (e.target === canvas) { selId = null; info(); render(); } });
+document.addEventListener('mousemove', e => {
+  if (!dragging || !selId) return;
+  const rc = canvas.getBoundingClientRect();
+  const it = items.find(i => i.id === selId); if (!it) return;
+  it.x = Math.max(0, Math.min(e.clientX - rc.left - offX, rc.width  - it.w));
+  it.y = Math.max(0, Math.min(e.clientY - rc.top  - offY, rc.height - it.h));
+  render(); info();
+});
+document.addEventListener('mouseup', () => dragging = false);
+
+// ═══════════════════════════════════════
+//  PALETTE → OPEN MODAL
+// ═══════════════════════════════════════
+document.querySelectorAll('.pi').forEach(el => {
+  el.addEventListener('click', () => openModal(el.dataset.type));
+});
+
+function openModal(type) {
+  currentType = type;
+  selectedAsset = null;
+  document.getElementById('modal-title').textContent = `Choose ${type} Asset`;
+  document.getElementById('btn-modal-place').disabled = true;
+
+  const assets = ASSETS[type] || [];
+  modalGrid.innerHTML = '';
+  assets.forEach(asset => {
+    const card = document.createElement('div');
+    card.className = 'asset-card';
+    card.innerHTML = `
+      <div class="asset-emoji">${asset.emoji}</div>
+      <div class="asset-name">${asset.name}</div>
+      <div class="asset-style">${asset.style}</div>
+    `;
+    card.addEventListener('click', () => {
+      modalGrid.querySelectorAll('.asset-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedAsset = asset;
+      document.getElementById('btn-modal-place').disabled = false;
+    });
+    modalGrid.appendChild(card);
+  });
+
+  modal.classList.add('open');
+}
+
+function closeModal() {
+  modal.classList.remove('open');
+  currentType = null;
+  selectedAsset = null;
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('btn-modal-cancel').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+document.getElementById('btn-modal-place').addEventListener('click', () => {
+  if (!selectedAsset || !currentType) return;
+  // place in center of canvas
+  const cw = parseFloat(canvas.style.width)  || 300;
+  const ch = parseFloat(canvas.style.height) || 240;
+  items.push({
+    id: Date.now() + Math.random(),
+    type: currentType,
+    assetId: selectedAsset.id,
+    assetName: selectedAsset.name,
+    style: selectedAsset.style,
+    emoji: selectedAsset.emoji,
+    glb: selectedAsset.glb,
+    x: Math.max(0, cw / 2 - selectedAsset.w / 2),
+    y: Math.max(0, ch / 2 - selectedAsset.h / 2),
+    w: selectedAsset.w,
+    h: selectedAsset.h,
+    r: 0,
+  });
+  closeModal();
+  render();
+});
+
+// ═══════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════
+document.getElementById('btn-rot').addEventListener('click', () => {
+  const it = items.find(i => i.id === selId);
+  if (it) { it.r = (it.r + 90) % 360; render(); info(); }
+});
+document.getElementById('btn-del').addEventListener('click', () => {
+  items = items.filter(i => i.id !== selId); selId = null; render(); info();
+});
+document.getElementById('btn-clear').addEventListener('click', () => {
+  items = []; selId = null; render(); info();
+});
+
+// ═══════════════════════════════════════
+//  DRAFT & PUBLISH → Bubble via postMessage
+// ═══════════════════════════════════════
+function getPayload(isDraft) {
+  return {
+    action: isDraft ? 'save_draft' : 'publish',
+    roomWidth:  +document.getElementById('rw').value || 5,
+    roomHeight: +document.getElementById('rh').value || 4,
+    itemCount: items.length,
+    items: items.map(it => ({
+      type: it.type,
+      assetId: it.assetId,
+      assetName: it.assetName,
+      style: it.style,
+      x: Math.round(it.x),
+      y: Math.round(it.y),
+      w: it.w,
+      h: it.h,
+      rotation: it.r,
+    })),
+    layoutJson: JSON.stringify(items),
+  };
+}
+
+function showStatus(type, msg) {
+  status.className = type;
+  status.textContent = msg;
+  if (type === 'saved') setTimeout(() => { status.style.display = 'none'; }, 3000);
+}
+
+document.getElementById('btn-draft').addEventListener('click', () => {
+  if (items.length === 0) { showStatus('error', '⚠ Add some furniture first!'); return; }
+  showStatus('saving', '💾 Saving draft...');
+  try {
+    // Toolbox plugin method
+    if (typeof bubble_fn_save_draft === 'function') {
+      bubble_fn_save_draft(JSON.stringify(getPayload(true)));
+    }
+    // postMessage fallback
+    window.parent.postMessage({ type: 'roomvibe_draft', data: getPayload(true) }, '*');
+    showStatus('saved', '✅ Draft saved!');
+  } catch(e) {
+    showStatus('error', '❌ Error saving');
+  }
+});
+
+document.getElementById('btn-publish').addEventListener('click', () => {
+  if (items.length === 0) { showStatus('error', '⚠ Add some furniture first!'); return; }
+  showStatus('saving', '🚀 Publishing...');
+  try {
+    if (typeof bubble_fn_publish_room === 'function') {
+      bubble_fn_publish_room(JSON.stringify(getPayload(false)));
+    }
+    window.parent.postMessage({ type: 'roomvibe_publish', data: getPayload(false) }, '*');
+    showStatus('saved', '🎉 Published to Feed!');
+  } catch(e) {
+    showStatus('error', '❌ Error publishing');
+  }
+});
+
+// ═══════════════════════════════════════
+//  WALL & FLOOR CONTROLS
+// ═══════════════════════════════════════
+document.querySelectorAll('.color-swatch').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    wallColor = el.dataset.color;
+    document.getElementById('wall-custom').value = wallColor;
+  });
+});
+
+document.getElementById('wall-custom').addEventListener('input', e => {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  wallColor = e.target.value;
+});
+
+document.querySelectorAll('.floor-btn').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    floorType  = el.dataset.floor;
+    floorColor = el.dataset.color;
+  });
+});
+
+// set default active
+document.querySelector('.color-swatch[data-color="#EDE8E0"]').classList.add('active');
+document.querySelector('.floor-btn[data-floor="parquet"]').classList.add('active');
+
+// ═══════════════════════════════════════
+//  THREE.JS 3D VIEWER
+// ═══════════════════════════════════════
+const v3d = document.getElementById('v3d');
+const tc  = document.getElementById('tc');
+let rdr, sc, cam, animId, mdown=false, lx=0, ly=0, yaw=0, pitch=0;
+const keys = {};
+
+const CM = { Sofa:0x7C6A9E, Bed:0x5B8DB8, 'Dining Table':0x8B6914, Chair:0xC47D3E,
+  Wardrobe:0x4A7C59, Desk:0x6B8E9F, Lamp:0xF5C842, Bookshelf:0x9B6B47, 'TV Stand':0x3D3D4E, 'Coffee Table':0xA0785A };
+const HM = { Sofa:0.85, Bed:0.55, 'Dining Table':0.75, Chair:0.90, Wardrobe:1.90,
+  Desk:0.75, Lamp:1.50, Bookshelf:1.80, 'TV Stand':0.50, 'Coffee Table':0.40 };
+
+function build3d() {
+  const rw = +document.getElementById('rw').value || 5;
+  const rh = +document.getElementById('rh').value || 4;
+  const WH = 3;
+  if (rdr) rdr.dispose();
+  rdr = new THREE.WebGLRenderer({ canvas: tc, antialias: true });
+  rdr.setPixelRatio(Math.min(devicePixelRatio, 2));
+  rdr.setSize(innerWidth, innerHeight);
+  rdr.shadowMap.enabled = true;
+  sc = new THREE.Scene();
+  sc.background = new THREE.Color(0x1a1a2e);
+  sc.fog = new THREE.FogExp2(0x1a1a2e, 0.05);
+  cam = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.05, 60);
+  cam.position.set(rw/2, 1.6, rh/2);
+  yaw = 0; pitch = 0;
+
+  sc.add(new THREE.AmbientLight(0xffffff, 0.45));
+  const dl = new THREE.DirectionalLight(0xfff8e7, 0.9);
+  dl.position.set(rw/2, WH-0.1, rh/2); dl.castShadow = true; sc.add(dl);
+  sc.add(Object.assign(new THREE.PointLight(0x6C63FF, 0.7, 10), { position: new THREE.Vector3(0.5, 2.5, 0.5) }));
+
+  // floor
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(rw, rh), new THREE.MeshLambertMaterial({ color: 0xC8B99A }));
+  fl.rotation.x = -Math.PI/2; fl.position.set(rw/2, 0, rh/2); fl.receiveShadow = true; sc.add(fl);
+  const grid = new THREE.GridHelper(Math.max(rw,rh)*3, Math.max(rw,rh)*6, 0x777777, 0x444444);
+  grid.position.set(rw/2, 0.001, rh/2); grid.material.opacity = 0.25; grid.material.transparent = true; sc.add(grid);
+
+  // ceiling
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(rw, rh), new THREE.MeshLambertMaterial({ color: 0xF5F5F0 }));
+  ceil.rotation.x = Math.PI/2; ceil.position.set(rw/2, WH, rh/2); sc.add(ceil);
+  const lf = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.04, 16),
+    new THREE.MeshLambertMaterial({ color: 0xFFFDE7, emissive: 0xFFFDE7, emissiveIntensity: 0.6 }));
+  lf.position.set(rw/2, WH-0.03, rh/2); sc.add(lf);
+
+  // walls
+  function wall(w, h, pos, ry) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ color: 0xEDE8E0, side: THREE.FrontSide }));
+    m.position.copy(pos); m.rotation.y = ry; m.receiveShadow = true; sc.add(m);
+  }
+  wall(rw, WH, new THREE.Vector3(rw/2, WH/2, 0), 0);
+  wall(rw, WH, new THREE.Vector3(rw/2, WH/2, rh), Math.PI);
+  wall(rh, WH, new THREE.Vector3(0, WH/2, rh/2), Math.PI/2);
+  wall(rh, WH, new THREE.Vector3(rw, WH/2, rh/2), -Math.PI/2);
+
+  // baseboards
+  function base(w, pos, ry) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.1), new THREE.MeshLambertMaterial({ color: 0x6C63FF }));
+    m.position.copy(pos); m.rotation.y = ry; sc.add(m);
+  }
+  base(rw, new THREE.Vector3(rw/2, 0.05, 0.005), 0);
+  base(rw, new THREE.Vector3(rw/2, 0.05, rh-0.005), Math.PI);
+  base(rh, new THREE.Vector3(0.005, 0.05, rh/2), Math.PI/2);
+  base(rh, new THREE.Vector3(rw-0.005, 0.05, rh/2), -Math.PI/2);
+
+  // furniture
+  const cw = parseFloat(canvas.style.width)  || 300;
+  const ch = parseFloat(canvas.style.height) || 240;
+  items.forEach(it => {
+    const fh = HM[it.type] || 0.8;
+    const fw = (it.w / cw) * rw;
+    const fd = (it.h / ch) * rh;
+    const g  = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, fd),
+      new THREE.MeshLambertMaterial({ color: CM[it.type] || 0x888888 }));
+    body.position.y = fh/2; body.castShadow = true; body.receiveShadow = true; g.add(body);
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(fw*0.9, fd*0.9),
+      new THREE.MeshLambertMaterial({ color: new THREE.Color(CM[it.type]||0x888888).lerp(new THREE.Color(0xffffff), 0.3) }));
+    top.rotation.x = -Math.PI/2; top.position.y = fh + 0.001; g.add(top);
+    g.position.set((it.x/cw)*rw + fw/2, 0, (it.y/ch)*rh + fd/2);
+    g.rotation.y = -(it.r * Math.PI) / 180;
+    sc.add(g);
+  });
+}
+
+tc.addEventListener('mousedown', e => { mdown=true; lx=e.clientX; ly=e.clientY; });
+document.addEventListener('mouseup', () => mdown = false);
+document.addEventListener('mousemove', e => {
+  if (!mdown || v3d.style.display !== 'block') return;
+  yaw   -= (e.clientX - lx) * 0.003;
+  pitch -= (e.clientY - ly) * 0.003;
+  pitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, pitch));
+  lx = e.clientX; ly = e.clientY;
+});
+document.addEventListener('keydown', e => keys[e.code] = true);
+document.addEventListener('keyup',   e => keys[e.code] = false);
+
+function loop() {
+  animId = requestAnimationFrame(loop);
+  const rw = +document.getElementById('rw').value || 5;
+  const rh = +document.getElementById('rh').value || 4;
+  const spd = 0.05;
+  const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+  const rt  = new THREE.Vector3( Math.cos(yaw), 0, -Math.sin(yaw));
+  if (keys.KeyW||keys.ArrowUp)    cam.position.addScaledVector(fwd,  spd);
+  if (keys.KeyS||keys.ArrowDown)  cam.position.addScaledVector(fwd, -spd);
+  if (keys.KeyA||keys.ArrowLeft)  cam.position.addScaledVector(rt,  -spd);
+  if (keys.KeyD||keys.ArrowRight) cam.position.addScaledVector(rt,   spd);
+  cam.position.x = Math.max(0.15, Math.min(rw-0.15, cam.position.x));
+  cam.position.z = Math.max(0.15, Math.min(rh-0.15, cam.position.z));
+  cam.position.y = 1.6;
+  cam.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+  rdr.render(sc, cam);
+}
+
+document.addEventListener('wheel', e => {
+  if (v3d.style.display !== 'block') return;
+  cam.fov = Math.max(30, Math.min(100, cam.fov + e.deltaY * 0.04));
+  cam.updateProjectionMatrix();
+});
+window.addEventListener('resize', () => {
+  if (!rdr) return;
+  rdr.setSize(innerWidth, innerHeight);
+  cam.aspect = innerWidth / innerHeight;
+  cam.updateProjectionMatrix();
+});
+
+document.getElementById('btn-3d').addEventListener('click', () => {
+  if (items.length === 0) { showStatus('error', '⚠ Add furniture first!'); return; }
+  const cw = parseFloat(canvas.style.width)  || 300;
+  const ch = parseFloat(canvas.style.height) || 240;
+  const roomData = {
+    roomWidth:  +document.getElementById('rw').value || 5,
+    roomHeight: +document.getElementById('rh').value || 4,
+    canvasW: cw,
+    canvasH: ch,
+    items: items,
+    wallColor: wallColor,
+    floorColor: floorColor,
+    floorType: floorType,
+  };
+  // Save to localStorage so 3D page can read it
+  try { localStorage.setItem('roomvibe_room', JSON.stringify(roomData)); } catch(e) {}
+  // Open 3D viewer in new tab
+  // IMPORTANT: Replace this URL with your GitHub Pages / Vercel URL for roomvibe-3d.html
+  const viewer3dUrl = 'https://doiciuirinel26-ai.github.io/design-room/roomvibe-3d.html';
+  const win = window.open(viewer3dUrl, '_blank');
+  // Also try postMessage after tab opens
+  if (win) {
+    setTimeout(() => {
+      try { win.postMessage({ type: 'roomvibe_3d', data: roomData }, '*'); } catch(e) {}
+    }, 1000);
+  }
+});
+
+render();
+</script>
+</body>
+</html>
